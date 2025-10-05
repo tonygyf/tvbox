@@ -2,8 +2,8 @@ name: Auto Sync Fork
 
 on:
   schedule:
-    - cron: '0 16 * * *'   # 每天北京时间 0 点执行 (UTC+8 → cron 要写 16点)
-  workflow_dispatch:        # 也可以手动触发
+    - cron: '0 16 * * *'   # 每天北京时间 0 点执行 (UTC+8 → UTC 16点)
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -13,7 +13,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # 必须完整历史，才能合并
+          fetch-depth: 0   # 必须完整历史，才能 rebase
 
       - name: Configure Git
         run: |
@@ -25,11 +25,12 @@ jobs:
           git remote add upstream https://github.com/qist/tvbox.git || true
           git fetch upstream
 
-      - name: Merge upstream changes
+      - name: Rebase onto upstream/master
         run: |
           git checkout master
-          git merge upstream/master --no-edit || true
+          git fetch upstream
+          git rebase upstream/master || (git rebase --abort && git reset --hard upstream/master)
 
-      - name: Push changes
+      - name: Force push to origin
         run: |
-          git push origin master
+          git push origin master --force
